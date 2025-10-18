@@ -1,0 +1,118 @@
+/* ==============================================
+   BASE STYLES - Reset, Layout, Typography
+   ============================================== */
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+  /* iOS-specific fix for proper full-height rendering */
+  min-height: 100vh;
+  /* iOS 26 fix: Use dynamic viewport height if available */
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+/* Body Background */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  /* Default: Gradient background for desktop/Android */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* iOS-specific: Solid color to match status bar */
+.is-ios html,
+.is-ios body {
+  /* Solid color for iOS (matches theme-color meta tag) */
+  background: #667eea;
+  /* iOS 26 fix: Use dynamic viewport height if available */
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+.is-ios body {
+  /* Add safe area padding for notched devices */
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+}
+
+/* Main Container */
+.container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 1200px;
+  width: 100%;
+  padding: 40px;
+  overflow-x: hidden;
+}
+
+/* iOS: Reduce box-shadow to prevent visible shadow against solid background */
+.is-ios .container {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Layout */
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 24px;
+  align-items: start;
+}
+
+.left-column, .right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.right-column .section {
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography */
+h1 {
+  color: #2d3748;
+  margin-bottom: 8px;
+  font-size: 28px;
+}
+
+.subtitle {
+  color: #718096;
+  margin-bottom: 32px;
+  font-size: 14px;
+}
+
+.demo-description {
+  color: #718096;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.section {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

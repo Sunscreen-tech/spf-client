@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -e
+
+# Clean script for SPF Client repository
+# Removes all build artifacts and node_modules
+
+# Parse arguments
+AUTO_YES=false
+if [ "$1" = "-y" ] || [ "$1" = "--yes" ]; then
+  AUTO_YES=true
+fi
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+
+# Collect paths to clean
+PATHS_TO_CLEAN=(
+  "$GIT_ROOT/target"
+  "$GIT_ROOT/typescript/node_modules"
+  "$GIT_ROOT/typescript/dist"
+  "$GIT_ROOT/typescript/pkg"
+  "$GIT_ROOT/typescript/wasm-bindings"
+  "$GIT_ROOT/browser-demo/node_modules"
+  "$GIT_ROOT/browser-demo/dist"
+)
+
+# Check if there's anything to clean
+HAS_PATHS=false
+for path in "${PATHS_TO_CLEAN[@]}"; do
+  if [ -e "$path" ]; then
+    HAS_PATHS=true
+    break
+  fi
+done
+
+# If nothing to clean, report and exit
+if [ "$HAS_PATHS" = false ]; then
+  echo "nothing to clean"
+  exit 0
+fi
+
+# Show what will be deleted
+echo "The following paths will be deleted:"
+for path in "${PATHS_TO_CLEAN[@]}"; do
+  if [ -e "$path" ]; then
+    echo "  $path"
+  fi
+done
+
+# Ask for confirmation unless -y flag
+if [ "$AUTO_YES" = false ]; then
+  read -p "Proceed? (y/n) " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Aborted"
+    exit 1
+  fi
+fi
+
+# Execute cleanup
+cd "$GIT_ROOT" && cargo clean
+rm -rf "$GIT_ROOT/typescript/node_modules" "$GIT_ROOT/typescript/dist" "$GIT_ROOT/typescript/pkg" "$GIT_ROOT/typescript/wasm-bindings"
+rm -rf "$GIT_ROOT/browser-demo/node_modules" "$GIT_ROOT/browser-demo/dist"
+
+echo "Done"

@@ -1,0 +1,275 @@
+/* ==============================================
+   COMPONENTS - Buttons, Inputs, Mode Selectors
+   ============================================== */
+
+/* Buttons */
+button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:hover:not(:disabled) {
+  background: #5a67d8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+button:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+button:focus-visible {
+  outline: 3px solid #2d3748;
+  outline-offset: 2px;
+}
+
+/* Mode Selector */
+.mode-selector {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.mode-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  min-height: 60px;
+  transition: all 0.2s;
+}
+
+.mode-option:hover {
+  border-color: #cbd5e0;
+  background: #f7fafc;
+}
+
+.mode-option:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.mode-option input[type="radio"] {
+  display: none;
+}
+
+.mode-option input:checked ~ .mode-content {
+  color: #667eea;
+}
+
+.mode-option:has(input:checked) {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.mode-option:focus-within {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.mode-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 32px;
+}
+
+.mode-content strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 1px 0;
+  align-self: center;
+}
+
+.mode-content small {
+  display: block;
+  color: #718096;
+  font-size: 12px;
+  margin-top: 4px;
+  align-self: center;
+}
+
+/* Key Display */
+.key-display {
+  background: #f7fafc;
+  border: 2px solid #48bb78;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.key-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.key-row:last-child {
+  margin-bottom: 0;
+}
+
+.key-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.address-code {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  word-break: break-all;
+  color: #2d3748;
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+/* Input Groups */
+.input-group {
+  margin-bottom: 16px;
+}
+
+.input-group:last-child {
+  margin-bottom: 0;
+}
+
+.input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 6px;
+}
+
+/* Wallet Info */
+.wallet-info {
+  background: #f7fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #2d3748;
+  word-break: break-all;
+}
+
+.wallet-info.connected {
+  border-color: #48bb78;
+  background: #f0fff4;
+}
+
+/* Number Input */
+input[type="number"] {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+input[type="number"]:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Endpoint Toggle */
+.endpoint-toggle {
+  background: #edf2f7;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.endpoint-toggle.visible {
+  display: flex;
+}
+
+.endpoint-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 30px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: 0.3s;
+  border-radius: 30px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #667eea;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(30px);
+}
+
+.toggle-switch:focus-within .toggle-slider {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+}
+
+.endpoint-info {
+  font-size: 12px;
+  color: #718096;
+  margin-top: 4px;
+}

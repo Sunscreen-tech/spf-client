@@ -1,0 +1,237 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-check:
+    name: Verify version consistency
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Cargo.toml and package.json versions match
+        id: get-version
+        run: |
+          CARGO_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          PKG_VERSION=$(grep '"version":' typescript/package.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+
+          echo "Cargo.toml version: $CARGO_VERSION"
+          echo "package.json version: $PKG_VERSION"
+
+          if [ "$CARGO_VERSION" != "$PKG_VERSION" ]; then
+            echo "Error: Version mismatch between Cargo.toml and package.json"
+            exit 1
+          fi
+
+          echo "Versions match: $CARGO_VERSION"
+          echo "version=$CARGO_VERSION" >> $GITHUB_OUTPUT
+
+  # Check if version has changed from previous commit
+  version-changed:
+    name: Detect version change
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if version changed
+        id: check
+        run: |
+          # Get current version
+          CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+
+          # Get previous version (from previous commit)
+          if git checkout HEAD~1 -- Cargo.toml 2>/dev/null; then
+            PREVIOUS_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+            git checkout HEAD -- Cargo.toml
+          else
+            # No previous commit (single commit repo) - treat as version change
+            PREVIOUS_VERSION="none"
+          fi
+
+          echo "Previous version: $PREVIOUS_VERSION"
+          echo "Current version: $CURRENT_VERSION"
+
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version has changed!"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged"
+          fi
+
+  # Build TypeScript package tarball for distribution
+  build-typescript:
+    name: Build TypeScript package
+    runs-on: ubuntu-latest
+    needs: [version-check]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build TypeScript tarball
+        run: nix build -L '.#packages.x86_64-linux.spf-typescript-tarball'
+
+      - name: Copy tarball with version in name
+        run: cp result spf-client-${{ needs.version-check.outputs.version }}.tgz
+
+      - name: Upload TypeScript artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spf-client
+          path: spf-client-${{ needs.version-check.outputs.version }}.tgz
+          retention-days: 7
+
+  # Build CLI for multiple platforms
+  build-cli:
+    name: Build CLI (${{ matrix.system }})
+    needs: [version-check]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+            artifact: spf-client-cli-linux-x86_64
+          - os: macos-latest
+            system: aarch64-darwin
+            artifact: spf-client-cli-macos-aarch64
+          - os: ubuntu-24.04-arm
+            system: aarch64-linux
+            artifact: spf-client-cli-linux-aarch64
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build CLI for ${{ matrix.system }}
+        if: runner.os != 'macOS'
+        run: nix build -L '.#packages.${{ matrix.system }}.spf-cli'
+
+      - name: Build portable CLI for macOS
+        if: runner.os == 'macOS'
+        run: nix build -L '.#packages.${{ matrix.system }}.spf-cli-portable'
+
+      - name: Test CLI
+        run: ./result/bin/spf-client --help
+
+      - name: Package CLI binary
+        run: tar czf ${{ matrix.artifact }}-${{ needs.version-check.outputs.version }}.tar.gz -C result bin
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}-${{ needs.version-check.outputs.version }}.tar.gz
+          retention-days: 7
+
+  # Run checks (each check as a separate step for better PR visibility)
+  checks:
+    name: Run checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Run Rust unit tests
+        run: nix build -L '.#checks.x86_64-linux.rust-unit-tests'
+
+      - name: Run Clippy
+        run: nix build -L '.#checks.x86_64-linux.cargo-clippy'
+
+      - name: Check Rust formatting
+        run: nix build -L '.#checks.x86_64-linux.cargo-fmt-check'
+
+      - name: TypeScript typecheck
+        run: nix build -L '.#checks.x86_64-linux.typescript-typecheck'
+
+      - name: Verify packages build
+        run: nix build -L '.#checks.x86_64-linux.packages-build'
+
+  # Create GitHub release with all artifacts (only on main branch when version changes)
+  release:
+    name: Create GitHub Release
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.version-changed.outputs.changed == 'true'
+    needs: [version-check, version-changed, checks, build-typescript, build-cli]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          SHORT_SHA=$(git rev-parse --short=7 HEAD)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          echo "Commit: $SHORT_SHA"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: ls -R artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }}
+          name: v${{ steps.version.outputs.version }} (${{ steps.version.outputs.short_sha }})
+          draft: false
+          prerelease: false
+          body: |
+            Automated release from commit ${{ github.sha }}
+
+            **Version:** ${{ steps.version.outputs.version }}
+            **Commit:** ${{ steps.version.outputs.short_sha }}
+
+            ## Release Artifacts
+
+            - **spf-client-${{ steps.version.outputs.version }}.tgz** - npm/TypeScript/WASM library for Node.js and browser usage
+            - **spf-client-cli-linux-x86_64-${{ steps.version.outputs.version }}.tar.gz** - Native CLI binary for Linux x86_64
+            - **spf-client-cli-linux-aarch64-${{ steps.version.outputs.version }}.tar.gz** - Native CLI binary for Linux ARM64
+            - **spf-client-cli-macos-aarch64-${{ steps.version.outputs.version }}.tar.gz** - Native CLI binary for macOS Apple Silicon
+          files: |
+            artifacts/spf-client-cli-linux-x86_64/spf-client-cli-linux-x86_64-${{ steps.version.outputs.version }}.tar.gz
+            artifacts/spf-client-cli-linux-aarch64/spf-client-cli-linux-aarch64-${{ steps.version.outputs.version }}.tar.gz
+            artifacts/spf-client-cli-macos-aarch64/spf-client-cli-macos-aarch64-${{ steps.version.outputs.version }}.tar.gz
+            artifacts/spf-client/spf-client-${{ steps.version.outputs.version }}.tgz

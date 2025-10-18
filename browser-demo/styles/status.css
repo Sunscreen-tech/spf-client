@@ -1,0 +1,155 @@
+/* ==============================================
+   STATUS & RESULTS DISPLAY
+   ============================================== */
+
+/* Status Log */
+.status-log {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 16px;
+  height: 150px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #e2e8f0;
+  line-height: 1.6;
+}
+
+.status-log:empty::before {
+  content: 'Status messages will appear here...';
+  color: #718096;
+}
+
+.status-entry {
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.status-entry::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: #667eea;
+}
+
+.status-entry.success::before {
+  content: '✓';
+  color: #48bb78;
+}
+
+.status-entry.error::before {
+  content: '✗';
+  color: #f56565;
+}
+
+/* Status-Result Container */
+.status-result-container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Result Box */
+.result-box {
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  background: #e2e8f0;
+  color: #4a5568;
+  border: 2px solid #cbd5e0;
+  transition: all 0.3s ease;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.result-box.pending {
+  background: #e2e8f0;
+  color: #4a5568;
+  border-color: #cbd5e0;
+}
+
+/* Rainbow Gradient Animation - 4 cycles, 120s */
+.result-box.processing {
+  background: linear-gradient(
+    135deg,
+    /* Cycle 1 */
+    #ff6b6b 0%, #ffa94d 3.125%, #ffd43b 6.25%,
+    #51cf66 9.375%, #74c0fc 12.5%, #9775fa 15.625%,
+    #f783ac 18.75%, #ff6b6b 21.875%,
+    /* Cycle 2 */
+    #ffa94d 25%, #ffd43b 28.125%,
+    #51cf66 31.25%, #74c0fc 34.375%, #9775fa 37.5%,
+    #f783ac 40.625%, #ff6b6b 43.75%,
+    /* Cycle 3 */
+    #ffa94d 46.875%, #ffd43b 50%,
+    #51cf66 53.125%, #74c0fc 56.25%, #9775fa 59.375%,
+    #f783ac 62.5%, #ff6b6b 65.625%,
+    /* Cycle 4 */
+    #ffa94d 68.75%, #ffd43b 71.875%,
+    #51cf66 75%, #74c0fc 78.125%, #9775fa 81.25%,
+    #f783ac 84.375%, #ff6b6b 87.5%,
+    /* End continuation */
+    #ffa94d 90.625%, #ffd43b 93.75%,
+    #51cf66 96.875%, #ff6b6b 100%
+  );
+  background-size: 1500% 1500%;
+  animation: rainbow-wave 120s linear infinite;
+  color: white;
+  border-color: #667eea;
+  will-change: background-position;
+}
+
+@keyframes rainbow-wave {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 250% 250%; }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .result-box.processing {
+    animation: none;
+    background: #667eea;
+  }
+}
+
+.result-box.approved {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+  border-color: #48bb78;
+}
+
+.result-box.rejected {
+  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+  color: white;
+  border-color: #f56565;
+}
+
+.result-value {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.result-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+
+/* Error Box */
+.error-box {
+  background: #fed7d7;
+  color: #c53030;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  display: none;
+}
+
+.error-box.show {
+  display: block;
+}

@@ -1,0 +1,94 @@
+{
+  "name": "@sunscreen/spf-client",
+  "version": "0.2.2",
+  "description": "TypeScript client library for Sunscreen SPF REST API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/browser/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./acl": {
+      "types": "./dist/acl.d.ts",
+      "import": "./dist/acl.js",
+      "default": "./dist/acl.js"
+    },
+    "./spf-wasm-loader": {
+      "types": "./dist/wasm-loader.d.ts",
+      "browser": "./dist/browser/wasm-loader.js",
+      "default": "./dist/wasm-loader.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/**/*",
+    "!dist/.tsbuildinfo",
+    "wasm-bindings/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build:wasm": "cd .. && wasm-pack build --target bundler --out-dir typescript/wasm-bindings",
+    "build:ts": "tsc",
+    "build": "npm run build:wasm && npm run build:ts",
+    "clean": "rm -rf dist wasm-bindings",
+    "prepublishOnly": "npm run clean && npm run build",
+    "typecheck": "npm run lint && tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:verbose": "vitest run --reporter=verbose"
+  },
+  "keywords": [
+    "spf",
+    "fhe",
+    "sunscreen",
+    "ethereum",
+    "homomorphic-encryption",
+    "typescript"
+  ],
+  "author": "Sunscreen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sunscreen-tech/spf-client.git",
+    "directory": "spf-client"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.4.0",
+    "@noble/secp256k1": "^2.1.0",
+    "viem": "^2.21.0"
+  },
+  "peerDependencies": {
+    "ethers": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ethers": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
+    "eslint": "^9.37.0",
+    "ethers": "^6.13.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.6.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0",
+    "vitest": "^2.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}

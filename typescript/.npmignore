@@ -1,0 +1,36 @@
+# Source files
+test/
+examples/
+*.test.ts
+*.test.js
+
+# Build artifacts
+*.tsbuildinfo
+.tsbuildinfo
+tsconfig.tsbuildinfo
+dist/.tsbuildinfo
+
+# Source maps (not needed in production)
+*.map
+**/*.map
+dist/**/*.map
+
+# Development files
+.vscode/
+.idea/
+*.log
+.DS_Store
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Documentation
+IMPLEMENTATION_PLAN.md
+
+# Config files not needed in package
+vitest.config.ts
+tsconfig.json
+
+# Exclude wasm-pack generated .gitignore that blocks npm pack
+wasm-bindings/.gitignore

@@ -1,0 +1,15 @@
+{
+  "name": "voting-web2-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Multi-wallet voting example using SPF TypeScript client",
+  "scripts": {
+    "voting": "tsx voting.ts"
+  },
+  "dependencies": {
+    "@sunscreen/spf-client": "file:../typescript/"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}

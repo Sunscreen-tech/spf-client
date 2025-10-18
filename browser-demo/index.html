@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#667eea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Private FHE Voting Demo</title>
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/components.css">
+  <link rel="stylesheet" href="./styles/status.css">
+  <link rel="stylesheet" href="./styles/code-display.css">
+  <link rel="stylesheet" href="./styles/responsive.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Private FHE Voting Demo</h1>
+
+    <!-- Demo Description -->
+    <div class="demo-description">
+      Demonstrates FHE voting where computation runs on encrypted data. Individual votes stay private while the program tallies results—only the final outcome (approved/rejected) is decrypted.
+    </div>
+
+    <!-- Endpoint Toggle -->
+    <div class="endpoint-toggle">
+      <div>
+        <div class="endpoint-label">SPF Endpoint: <span id="endpointDisplay">localhost:8080 (via proxy)</span></div>
+        <div class="endpoint-info">Switching will reinitialize the WASM module</div>
+      </div>
+      <label class="toggle-switch" aria-label="Toggle between localhost and production endpoint">
+        <input type="checkbox" id="endpointToggle" aria-label="Production endpoint">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Mode Selection -->
+    <div class="section" data-mode-selector style="display: none;">
+      <div class="section-title">Signer Mode</div>
+      <div class="mode-selector" role="radiogroup" aria-label="Signer Mode">
+        <label class="mode-option">
+          <input type="radio" name="mode" value="web2" checked aria-label="Web2 Mode: Generate ephemeral keys in browser">
+          <div class="mode-content">
+            <strong>Web2 Mode</strong>
+            <small>Generate ephemeral keys in browser</small>
+          </div>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="mode" value="web3" aria-label="Web3 Mode: Use MetaMask wallet">
+          <div class="mode-content">
+            <strong>Web3 Mode</strong>
+            <small>MetaMask (simulated blockchain interaction)</small>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="two-column-layout">
+      <!-- Left Column: Steps 1-2 -->
+      <div class="left-column">
+        <!-- Step 1: Initialize Signer -->
+        <div class="section" id="step1Section" style="visibility: hidden;">
+          <div class="section-title">Step 1: <span id="step1Label">Initialize Keys</span></div>
+          <button id="initButton">Generate Keys</button>
+        </div>
+
+        <!-- Step 2: Cast Your Vote -->
+        <div class="section" id="step2Section">
+          <div class="section-title">Step 2: Cast Your Vote</div>
+          <div class="input-group">
+            <label>Your vote on the issue:</label>
+            <div class="mode-selector" role="radiogroup" aria-label="Your vote" style="margin-top: 8px;">
+              <label class="mode-option" style="flex: 1;">
+                <input type="radio" name="vote" value="approve" checked aria-label="Vote to approve">
+                <div class="mode-content">
+                  <strong>Approve</strong>
+                </div>
+              </label>
+              <label class="mode-option" style="flex: 1;">
+                <input type="radio" name="vote" value="reject" aria-label="Vote to reject">
+                <div class="mode-content">
+                  <strong>Reject</strong>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="input-group" style="margin-top: 16px; padding-bottom: 18px;">
+            <label>Simulated voters:</label>
+            <div class="mode-selector" role="radiogroup" aria-label="Simulated voters" style="margin-top: 8px;">
+              <label class="mode-option" style="flex: 1;">
+                <input type="radio" name="simulationMode" value="random" checked aria-label="Random votes">
+                <div class="mode-content">
+                  <strong>Random</strong>
+                </div>
+              </label>
+              <label class="mode-option" style="flex: 1;">
+                <input type="radio" name="simulationMode" value="tiebreaker" aria-label="Tie breaker">
+                <div class="mode-content">
+                  <strong>Tie Breaker</strong>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Steps 3-4 -->
+      <div class="right-column">
+        <!-- Step 3: Run FHE Program -->
+        <div class="section">
+          <div class="section-title">Step 3: Run FHE Voting Program</div>
+          <!-- Desktop code display -->
+          <div class="code-display code-display-desktop">
+            <code>[[<span class="code-keyword">clang</span>::<span class="code-function">fhe_program</span>]]
+<span class="code-type">void</span> <span class="code-function">tally_votes</span>([[<span class="code-keyword">clang</span>::<span class="code-keyword">encrypted</span>]] <span class="code-type">int8_t</span> <span class="code-operator">*</span>votes,
+                 <span class="code-type">uint16_t</span> num_votes,
+                 [[<span class="code-keyword">clang</span>::<span class="code-keyword">encrypted</span>]] <span class="code-type">bool</span> <span class="code-operator">*</span>didTheIssuePass) {
+  <span class="code-type">int16_t</span> sum <span class="code-operator">=</span> 0;
+
+  <span class="code-keyword">for</span> (<span class="code-type">uint16_t</span> i <span class="code-operator">=</span> 0; i <span class="code-operator">&lt;</span> num_votes; i<span class="code-operator">++</span>) {
+    <span class="code-type">int8_t</span> sanitized_vote <span class="code-operator">=</span>
+        <span class="code-function">iselect8</span>(votes[i] <span class="code-operator">==</span> 1 <span class="code-operator">||</span> votes[i] <span class="code-operator">==</span> <span class="code-operator">-</span>1, votes[i], 0);
+    sum <span class="code-operator">+=</span> sanitized_vote;
+  }
+
+  <span class="code-operator">*</span>didTheIssuePass <span class="code-operator">=</span> sum <span class="code-operator">&gt;</span> 0;
+}</code>
+          </div>
+          <!-- Mobile code display - reformatted -->
+          <div class="code-display code-display-mobile">
+            <code>[[<span class="code-keyword">clang</span>::<span class="code-function">fhe_program</span>]]
+<span class="code-type">void</span> <span class="code-function">tally_votes</span>(
+  [[<span class="code-keyword">clang</span>::<span class="code-keyword">encrypted</span>]] <span class="code-type">int8_t</span> <span class="code-operator">*</span>votes,
+  <span class="code-type">uint16_t</span> num_votes,
+  [[<span class="code-keyword">clang</span>::<span class="code-keyword">encrypted</span>]] <span class="code-type">bool</span> <span class="code-operator">*</span>didTheIssuePass)
+{
+  <span class="code-type">int16_t</span> sum <span class="code-operator">=</span> 0;
+
+  <span class="code-keyword">for</span> (<span class="code-type">uint16_t</span> i <span class="code-operator">=</span> 0; i <span class="code-operator">&lt;</span> num_votes; i<span class="code-operator">++</span>) {
+    <span class="code-type">int8_t</span> sanitized_vote <span class="code-operator">=</span>
+      <span class="code-function">iselect8</span>(votes[i] <span class="code-operator">==</span> 1 <span class="code-operator">||</span>
+               votes[i] <span class="code-operator">==</span> <span class="code-operator">-</span>1,
+               votes[i], 0);
+    sum <span class="code-operator">+=</span> sanitized_vote;
+  }
+
+  <span class="code-operator">*</span>didTheIssuePass <span class="code-operator">=</span> sum <span class="code-operator">&gt;</span> 0;
+}</code>
+          </div>
+          <button id="runButton" disabled>Run Voting Program</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Log and Result Display (Side by Side) -->
+    <div class="section" style="margin-top: 24px;">
+      <div class="status-result-container">
+        <div id="statusLog" class="status-log" role="log" aria-live="polite" aria-atomic="false" aria-relevant="additions"></div>
+        <div id="resultBox" class="result-box pending">
+          <div class="result-label">Vote Result</div>
+          <div class="result-value" id="resultValue">Not Running</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Display -->
+    <div id="errorBox" class="error-box"></div>
+  </div>
+
+  <!-- iOS Detection: Apply solid color on iOS, gradient elsewhere -->
+  <script>
+    // Detect iOS and apply class for CSS targeting (CSS handles viewport height)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      document.documentElement.classList.add('is-ios');
+    }
+  </script>
+  <script type="module" src="/main.ts"></script>
+</body>
+</html>

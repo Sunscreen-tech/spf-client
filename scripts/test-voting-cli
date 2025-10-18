@@ -1,0 +1,312 @@
+#!/usr/bin/env bash
+
+# test-voting-cli.sh
+# End-to-end test of CLI for voting scenario with 4 voters
+# Tests ciphertext generation, ACL operations, program upload, and run access
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Configuration
+CLI="${CLI:-./target/release/spf-client}"
+ENDPOINT="${ENDPOINT:-http://localhost:8080}"
+
+# Logging functions
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+log_test() {
+    echo -e "${YELLOW}[TEST]${NC} $1"
+}
+
+# Check if CLI exists
+if [ ! -f "$CLI" ]; then
+    log_error "CLI not found at $CLI"
+    log_info "Run 'cargo build --release' first"
+    exit 1
+fi
+
+log_info "Starting CLI voting test"
+log_info "CLI: $CLI"
+log_info "Endpoint: $ENDPOINT"
+echo ""
+
+# Generate 4 voter wallets
+log_test "Generating 4 voter wallets"
+VOTER1=$($CLI new-wallet)
+VOTER2=$($CLI new-wallet)
+VOTER3=$($CLI new-wallet)
+VOTER4=$($CLI new-wallet)
+
+V1_ADDR=$(echo "$VOTER1" | jq -r '.address')
+V1_KEY=$(echo "$VOTER1" | jq -r '.privateKey')
+V2_ADDR=$(echo "$VOTER2" | jq -r '.address')
+V2_KEY=$(echo "$VOTER2" | jq -r '.privateKey')
+V3_ADDR=$(echo "$VOTER3" | jq -r '.address')
+V3_KEY=$(echo "$VOTER3" | jq -r '.privateKey')
+V4_ADDR=$(echo "$VOTER4" | jq -r '.address')
+V4_KEY=$(echo "$VOTER4" | jq -r '.privateKey')
+
+log_info "Voter 1: $V1_ADDR"
+log_info "Voter 2: $V2_ADDR"
+log_info "Voter 3: $V3_ADDR"
+log_info "Voter 4: $V4_ADDR"
+echo ""
+
+# Generate votes (1=yes, 0=no): 2 yes, 2 no
+log_test "Generating encrypted votes"
+log_info "Voter 1 votes YES (1)"
+CT1=$($CLI --endpoint "$ENDPOINT" generate-ciphertext --value 1 --bits 8 --upload --private-key "$V1_KEY")
+log_info "Ciphertext 1: $CT1"
+
+log_info "Voter 2 votes YES (1)"
+CT2=$($CLI --endpoint "$ENDPOINT" generate-ciphertext --value 1 --bits 8 --upload --private-key "$V2_KEY")
+log_info "Ciphertext 2: $CT2"
+
+log_info "Voter 3 votes NO (0)"
+CT3=$($CLI --endpoint "$ENDPOINT" generate-ciphertext --value=-1 --bits 8 --upload --private-key "$V3_KEY")
+log_info "Ciphertext 3: $CT3"
+
+log_info "Voter 4 votes NO (0)"
+CT4=$($CLI --endpoint "$ENDPOINT" generate-ciphertext --value 1 --bits 8 --upload --private-key "$V4_KEY")
+log_info "Ciphertext 4: $CT4"
+echo ""
+
+# Test ACL operations on first ciphertext
+log_test "Testing ACL operations on Voter 1's ciphertext"
+
+# Check admin access before granting (should fail)
+log_info "Checking admin access for Voter 2 (should be denied)"
+if $CLI --endpoint "$ENDPOINT" access check admin --ciphertext-id "$CT1" --address "$V2_ADDR" --json > /dev/null 2>&1; then
+    log_error "Access check should have failed but passed"
+    exit 1
+fi
+log_info "Access correctly denied"
+
+# Grant admin access to Voter 2
+log_info "Granting admin access to Voter 2"
+CT1_ADMIN=$($CLI --endpoint "$ENDPOINT" access grant admin \
+    --ciphertext-id "$CT1" \
+    --address "$V2_ADDR" \
+    --private-key "$V1_KEY")
+log_info "New ciphertext ID after admin grant: $CT1_ADMIN"
+
+# Check admin access after granting (should succeed)
+log_info "Checking admin access for Voter 2 (should be granted)"
+CHECK_RESULT=$($CLI --endpoint "$ENDPOINT" access check admin \
+    --ciphertext-id "$CT1_ADMIN" \
+    --address "$V2_ADDR" \
+    --json)
+STATUS=$(echo "$CHECK_RESULT" | jq -r '.status')
+if [ "$STATUS" != "success" ]; then
+    log_error "Admin access check failed"
+    echo "$CHECK_RESULT"
+    exit 1
+fi
+log_info "Admin access correctly granted"
+echo ""
+
+# Grant decrypt access to Voter 3
+log_info "Granting decrypt access to Voter 3"
+CT1_DECRYPT=$($CLI --endpoint "$ENDPOINT" access grant decrypt \
+    --ciphertext-id "$CT1_ADMIN" \
+    --address "$V3_ADDR" \
+    --private-key "$V1_KEY")
+log_info "New ciphertext ID after decrypt grant: $CT1_DECRYPT"
+
+# Check decrypt access (should succeed)
+log_info "Checking decrypt access for Voter 3 (should be granted)"
+CHECK_RESULT=$($CLI --endpoint "$ENDPOINT" access check decrypt \
+    --ciphertext-id "$CT1_DECRYPT" \
+    --address "$V3_ADDR" \
+    --json)
+STATUS=$(echo "$CHECK_RESULT" | jq -r '.status')
+if [ "$STATUS" != "success" ]; then
+    log_error "Decrypt access check failed"
+    echo "$CHECK_RESULT"
+    exit 1
+fi
+log_info "Decrypt access correctly granted"
+echo ""
+
+# Check that Voter 4 does not have decrypt access
+log_info "Checking decrypt access for Voter 4 (should be denied)"
+if $CLI --endpoint "$ENDPOINT" access check decrypt \
+    --ciphertext-id "$CT1_DECRYPT" \
+    --address "$V4_ADDR" \
+    --json > /dev/null 2>&1; then
+    log_error "Access check should have failed but passed"
+    exit 1
+fi
+log_info "Access correctly denied for Voter 4"
+echo ""
+
+# Full voting workflow
+log_test "Running full voting workflow"
+
+# Generate a runner wallet
+log_info "Generating runner wallet"
+RUNNER=$($CLI new-wallet)
+RUNNER_ADDR=$(echo "$RUNNER" | jq -r '.address')
+RUNNER_KEY=$(echo "$RUNNER" | jq -r '.privateKey')
+log_info "Runner: $RUNNER_ADDR"
+echo ""
+
+# Upload voting program
+log_info "Uploading voting program"
+PROGRAM_PATH="typescript/test/fixtures/voting.spf"
+if [ ! -f "$PROGRAM_PATH" ]; then
+    log_error "Voting program not found at $PROGRAM_PATH"
+    exit 1
+fi
+LIBRARY_ID=$($CLI --endpoint "$ENDPOINT" upload-program --file "$PROGRAM_PATH" 2>&1 | tail -1)
+log_info "Library ID: $LIBRARY_ID"
+echo ""
+
+# Grant run access to runner for all vote ciphertexts
+log_info "Granting run access to runner for all votes"
+CT1_RUN=$($CLI --endpoint "$ENDPOINT" access grant run \
+    --ciphertext-id "$CT1" \
+    --executor "$RUNNER_ADDR" \
+    --library "$LIBRARY_ID" \
+    --entry-point "tally_votes" \
+    --private-key "$V1_KEY")
+log_info "Vote 1 with run access: $CT1_RUN"
+
+CT2_RUN=$($CLI --endpoint "$ENDPOINT" access grant run \
+    --ciphertext-id "$CT2" \
+    --executor "$RUNNER_ADDR" \
+    --library "$LIBRARY_ID" \
+    --entry-point "tally_votes" \
+    --private-key "$V2_KEY")
+log_info "Vote 2 with run access: $CT2_RUN"
+
+CT3_RUN=$($CLI --endpoint "$ENDPOINT" access grant run \
+    --ciphertext-id "$CT3" \
+    --executor "$RUNNER_ADDR" \
+    --library "$LIBRARY_ID" \
+    --entry-point "tally_votes" \
+    --private-key "$V3_KEY")
+log_info "Vote 3 with run access: $CT3_RUN"
+
+CT4_RUN=$($CLI --endpoint "$ENDPOINT" access grant run \
+    --ciphertext-id "$CT4" \
+    --executor "$RUNNER_ADDR" \
+    --library "$LIBRARY_ID" \
+    --entry-point "tally_votes" \
+    --private-key "$V4_KEY")
+log_info "Vote 4 with run access: $CT4_RUN"
+echo ""
+
+# Submit voting run
+log_test "Submitting voting run"
+log_info "Running tally_votes program with 4 encrypted votes"
+
+# Build parameters JSON for the run
+# Parameter 0: Array of 4 encrypted votes (type: ciphertext_array)
+# Parameter 1: Number of votes as uint16 (type: plaintext, bit_width: 16, value: 4)
+# Parameter 2: Output array for result (type: output_ciphertext_array, bit_width: 8, size: 1)
+PARAMS="[{\"type\":\"ciphertext_array\",\"ids\":[\"$CT1_RUN\",\"$CT2_RUN\",\"$CT3_RUN\",\"$CT4_RUN\"]},{\"type\":\"plaintext\",\"bit_width\":16,\"value\":4},{\"type\":\"output_ciphertext_array\",\"bit_width\":8,\"size\":1}]"
+
+RUN_HANDLE=$($CLI --endpoint "$ENDPOINT" run submit \
+    --library "$LIBRARY_ID" \
+    --program "tally_votes" \
+    --parameters "$PARAMS" \
+    --private-key "$RUNNER_KEY")
+
+log_info "Run submitted: $RUN_HANDLE"
+echo ""
+
+# Poll for run completion
+log_test "Waiting for run to complete"
+MAX_ATTEMPTS=120
+ATTEMPT=0
+while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    STATUS=$($CLI --endpoint "$ENDPOINT" run check-status --run-handle "$RUN_HANDLE" 2>/dev/null || echo "pending")
+
+    if [ "$STATUS" = "success" ]; then
+        log_info "Run completed successfully"
+        break
+    elif [[ "$STATUS" == failed* ]]; then
+        log_error "Run failed: $STATUS"
+        exit 1
+    fi
+
+    # Show progress
+    echo -n "."
+    sleep 1
+    ATTEMPT=$((ATTEMPT + 1))
+done
+
+if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+    log_error "Run timed out after $MAX_ATTEMPTS seconds"
+    exit 1
+fi
+
+echo ""
+echo ""
+
+# Derive result ciphertext ID
+log_test "Deriving result ciphertext ID"
+RESULT_CT_ID=$($CLI --endpoint "$ENDPOINT" run derive-output \
+    --run-handle "$RUN_HANDLE" \
+    --output-index 0)
+log_info "Result ciphertext ID: $RESULT_CT_ID"
+log_info "Runner has admin access (from running the program)"
+echo ""
+
+# Decrypt the result (runner already has admin access, no need to grant decrypt)
+log_test "Decrypting voting result"
+log_info "Decrypting result (this may take a while)..."
+
+# Poll for decryption result
+MAX_DECRYPT_ATTEMPTS=60
+DECRYPT_ATTEMPT=0
+while [ $DECRYPT_ATTEMPT -lt $MAX_DECRYPT_ATTEMPTS ]; do
+    RESULT_VALUE=$($CLI --endpoint "$ENDPOINT" decrypt \
+        --ciphertext-id "$RESULT_CT_ID" \
+        --private-key "$RUNNER_KEY" \
+        --bit-width 8 \
+        --sign unsigned)
+
+    if [ "$RESULT_VALUE" != "pending" ]; then
+        break
+    fi
+
+    echo -n "."
+    sleep 2
+    DECRYPT_ATTEMPT=$((DECRYPT_ATTEMPT + 1))
+done
+
+if [ "$RESULT_VALUE" = "pending" ]; then
+    log_error "Decryption timed out after $MAX_DECRYPT_ATTEMPTS attempts"
+    exit 1
+fi
+
+echo ""
+echo ""
+
+log_info "Decrypted result: $RESULT_VALUE"
+echo ""
+
+# Verify result
+log_test "Verifying voting result"
+log_info "Expected: Votes [1, 1, -1, 1] => sum = 2 => result = 1 (approved)"
+if [ "$RESULT_VALUE" -eq 1 ]; then
+    log_info "Result verification passed"
+else
+    log_error "Result verification failed"
+    log_error "Expected 1 (approved), got $RESULT_VALUE"
+    exit 1
+fi
+echo ""
