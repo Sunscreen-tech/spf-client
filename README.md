@@ -23,6 +23,11 @@ This repository provides four main components for working with SPF:
 
 ## Quick Start
 
+### Downloading the CLI and typescript package
+
+The [releases](https://github.com/Sunscreen-tech/spf-client/releases) page on this github contains the compiled standalone binaries for the `spf-client` and the npm package for the `spf-client`. Additionally you can specify the typescript `spf-client` for use in your web application using [`npm install @sunscreen/spf-client`](https://www.npmjs.com/package/@sunscreen/spf-client).
+
+
 ### Build the CLI
 
 ```sh
