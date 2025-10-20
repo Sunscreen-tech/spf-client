@@ -214,13 +214,11 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }}
-          name: v${{ steps.version.outputs.version }} (${{ steps.version.outputs.short_sha }})
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
           body: |
-            Automated release from commit ${{ github.sha }}
-
             **Version:** ${{ steps.version.outputs.version }}
             **Commit:** ${{ steps.version.outputs.short_sha }}
 
