@@ -85,6 +85,7 @@ checksum = "bf01dd83a1ca5e4807d0ca0223c9615e211ce5db0a9fd1443c2778cacf89b546"
 dependencies = [
  "alloy-primitives",
  "num_enum",
+ "serde",
  "strum",
 ]
 
@@ -3837,6 +3838,7 @@ name = "spf_client"
 version = "0.2.2"
 dependencies = [
  "alloy",
+ "alloy-chains",
  "anyhow",
  "base64",
  "bincode",

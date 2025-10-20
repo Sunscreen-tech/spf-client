@@ -41,6 +41,7 @@ reqwest = { version = "0.12", default-features = false, features = ["blocking", 
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 alloy = "1"
+alloy-chains = "0.2"
 enum_stringify = "0.6"
 parasol_cpu = { git = "https://github.com/Sunscreen-tech/spf.git" }
 tracing = "0.1"

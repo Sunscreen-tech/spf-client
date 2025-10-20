@@ -2,7 +2,8 @@ use crate::core::encoding;
 use alloy::primitives::{FixedBytes, U256};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::sol_types::SolValue;
-use anyhow::Result;
+use alloy_chains::NamedChain;
+use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 
 // Define SPF access control structures for ABI encoding
@@ -327,14 +328,12 @@ pub enum AclCheckResult {
 /// For localhost, returns an error since the chain ID varies by local setup.
 /// Use grant operations (which query RPC) for localhost chains.
 fn resolve_chain_id_from_name(chain: &str) -> Result<u64> {
-    use super::chain::Chain;
-
-    let chain_obj = chain.parse::<Chain>()?;
-    chain_obj.chain_id().ok_or_else(|| {
-        anyhow::anyhow!(
-            "cannot determine chain ID for localhost without RPC query; use grant operations for localhost which query the RPC"
-        )
-    })
+    match chain.parse::<NamedChain>() {
+        Ok(c) => Ok(c as u64),
+        Err(e) => bail!(
+            "{e}: please follow naming convention in NamedChain enum in https://docs.rs/alloy-chains/latest/src/alloy_chains/named.rs.html, for example, `monad-testnet` is the only acceptable form for Monad testnet"
+        ),
+    }
 }
 
 /// Generic helper for ACL check operations
