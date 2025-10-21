@@ -85,7 +85,7 @@ const ciphertextId = await uploadCiphertext(signer, ciphertext);
 
 ## Learn More
 
-Complete documentation available at [docs.sunscreen.tech](https://docs.sunscreen.tech).
+Complete documentation available at [spf-docs.sunscreen.tech](https://spf-docs.sunscreen.tech).
 
 ## License
 
