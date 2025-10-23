@@ -2,6 +2,7 @@ use crate::core::encoding;
 use alloy::primitives::{FixedBytes, U256};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::sol_types::SolValue;
+use alloy_chains::NamedChain;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +24,7 @@ alloy::sol! {
 /// - If neither provided: Returns None (web2 mode)
 /// - If either provided: Queries RPC for chain ID and validates (web3 mode)
 /// - If both provided: Uses custom RPC with specified chain
-async fn resolve_chain_id(chain: Option<&str>, rpc_url: Option<&str>) -> Result<Option<u64>> {
+async fn resolve_chain_id(chain: Option<NamedChain>, rpc_url: Option<&str>) -> Result<Option<u64>> {
     use super::chain::{query_and_validate_chain_id, resolve_rpc_and_chain};
 
     match (chain, rpc_url) {
@@ -44,7 +45,7 @@ async fn grant_access_generic(
     endpoint: &str,
     ciphertext_id: &str,
     address: &str,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
     rpc_url: Option<&str>,
     signer: &PrivateKeySigner,
     build_access: impl FnOnce(Option<u64>, encoding::Address) -> encoding::AccessType,
@@ -73,7 +74,7 @@ pub async fn admin_access(
     endpoint: &str,
     ciphertext_id: &str,
     address: &str,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
     rpc_url: Option<&str>,
     signer: &PrivateKeySigner,
 ) -> Result<String> {
@@ -104,7 +105,7 @@ pub async fn decrypt_access(
     endpoint: &str,
     ciphertext_id: &str,
     address: &str,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
     rpc_url: Option<&str>,
     signer: &PrivateKeySigner,
 ) -> Result<String> {
@@ -139,7 +140,7 @@ pub async fn run_access(
     executor: &str,
     library: Option<&str>,
     entry_point: Option<&str>,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
     rpc_url: Option<&str>,
     signer: &PrivateKeySigner,
 ) -> Result<String> {
@@ -321,22 +322,6 @@ pub enum AclCheckResult {
     Denied { reason: String },
 }
 
-/// Helper to resolve chain ID from chain name (without RPC query)
-///
-/// Returns the chain ID for named chains (monad, sepolia).
-/// For localhost, returns an error since the chain ID varies by local setup.
-/// Use grant operations (which query RPC) for localhost chains.
-fn resolve_chain_id_from_name(chain: &str) -> Result<u64> {
-    use super::chain::Chain;
-
-    let chain_obj = chain.parse::<Chain>()?;
-    chain_obj.chain_id().ok_or_else(|| {
-        anyhow::anyhow!(
-            "cannot determine chain ID for localhost without RPC query; use grant operations for localhost which query the RPC"
-        )
-    })
-}
-
 /// Generic helper for ACL check operations
 ///
 /// Consolidates common logic: parse address, resolve chain_id, build access type, check
@@ -344,17 +329,13 @@ async fn check_access_generic(
     endpoint: &str,
     ciphertext_id: &str,
     address: &str,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
     build_access: impl FnOnce(Option<u64>, encoding::Address) -> Result<encoding::AccessType>,
 ) -> Result<AclCheckResult> {
     let addr = encoding::parse_address_hex(address)
         .map_err(|e| anyhow::anyhow!("invalid address: {}", e))?;
 
-    let chain_id = if let Some(chain_name) = chain {
-        Some(resolve_chain_id_from_name(chain_name)?)
-    } else {
-        None
-    };
+    let chain_id = chain.map(|c| c as u64);
 
     let access = build_access(chain_id, addr)?;
     check_access(endpoint, ciphertext_id, access).await
@@ -370,7 +351,7 @@ pub async fn check_admin_access(
     endpoint: &str,
     ciphertext_id: &str,
     address: &str,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
 ) -> Result<AclCheckResult> {
     check_access_generic(endpoint, ciphertext_id, address, chain, |chain_id, addr| {
         Ok(encoding::AccessType::Admin { chain_id, addr })
@@ -388,7 +369,7 @@ pub async fn check_decrypt_access(
     endpoint: &str,
     ciphertext_id: &str,
     address: &str,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
 ) -> Result<AclCheckResult> {
     check_access_generic(endpoint, ciphertext_id, address, chain, |chain_id, addr| {
         Ok(encoding::AccessType::Decrypt { chain_id, addr })
@@ -410,7 +391,7 @@ pub async fn check_run_access(
     address: &str,
     library: &str,
     entry_point: &str,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
 ) -> Result<AclCheckResult> {
     let lib =
         encoding::parse_b256_hex(library).map_err(|e| anyhow::anyhow!("invalid library: {}", e))?;

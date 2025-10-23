@@ -1,68 +1,20 @@
 use alloy::primitives::Address;
 use alloy::providers::{Provider, ProviderBuilder};
+use alloy_chains::NamedChain;
 use anyhow::{Context, Result, bail};
 
-/// Supported named chains
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Chain {
-    Monad,
-    Sepolia,
-    Localhost,
+pub trait RpcUrl {
+    fn rpc_url(&self) -> Result<&str>;
 }
 
-impl std::str::FromStr for Chain {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "monad" => Ok(Chain::Monad),
-            "sepolia" => Ok(Chain::Sepolia),
-            "localhost" => Ok(Chain::Localhost),
-            _ => bail!(
-                "Unsupported chain '{}'. Supported chains: monad, sepolia, localhost",
-                s
-            ),
-        }
-    }
-}
-
-impl Chain {
+impl RpcUrl for NamedChain {
     /// Get RPC URL for the chain
-    pub fn rpc_url(&self) -> &'static str {
+    fn rpc_url(&self) -> Result<&str> {
         match self {
-            Chain::Monad => "https://testnet-rpc.monad.xyz",
-            Chain::Sepolia => "https://ethereum-sepolia-rpc.publicnode.com",
-            Chain::Localhost => "http://127.0.0.1:8545",
-        }
-    }
-
-    /// Get expected chain ID (for validation)
-    pub fn expected_chain_id(&self) -> Option<u64> {
-        match self {
-            Chain::Monad => Some(10143),
-            Chain::Sepolia => Some(11155111),
-            Chain::Localhost => None, // Don't validate localhost chain ID (varies by tool)
-        }
-    }
-
-    /// Get chain ID for hardcoded chains (used by check operations without RPC)
-    ///
-    /// Returns None for localhost since the chain ID varies by local setup.
-    /// For localhost, use grant operations which query the RPC to get the actual chain ID.
-    pub fn chain_id(&self) -> Option<u64> {
-        match self {
-            Chain::Monad => Some(10143),
-            Chain::Sepolia => Some(11155111),
-            Chain::Localhost => None, // Varies by local setup
-        }
-    }
-
-    /// Get human-readable chain name
-    pub fn name(&self) -> &'static str {
-        match self {
-            Chain::Monad => "Monad",
-            Chain::Sepolia => "Sepolia",
-            Chain::Localhost => "Localhost",
+            NamedChain::MonadTestnet => Ok("https://testnet-rpc.monad.xyz"),
+            NamedChain::Sepolia => Ok("https://ethereum-sepolia-rpc.publicnode.com"),
+            NamedChain::AnvilHardhat => Ok("http://127.0.0.1:8545"),
+            _ => bail!("Figuring out RPC URL for {self} is not yet supported"),
         }
     }
 }
@@ -72,29 +24,26 @@ impl Chain {
 /// If both rpc_url and chain are provided: uses custom RPC with specified chain
 /// If only chain is provided: uses chain's default RPC URL
 /// If only rpc_url is provided: errors (must specify which chain)
-/// If neither is provided: defaults to Localhost
+/// If neither is provided: defaults to local anvil/hardhat node
 pub fn resolve_rpc_and_chain(
     rpc_url: Option<&str>,
-    chain: Option<&str>,
-) -> Result<(String, Chain)> {
+    chain: Option<NamedChain>,
+) -> Result<(String, NamedChain)> {
     match (rpc_url, chain) {
-        (Some(url), Some(c)) => {
-            let chain = c.parse::<Chain>()?;
-            Ok((url.to_string(), chain))
-        }
+        (Some(url), Some(chain)) => Ok((url.to_string(), chain)),
         (Some(_), None) => {
-            bail!("Must specify --chain (monad/sepolia/localhost) when using custom --rpc-url")
+            bail!("Must specify --chain (monad-testnet/sepolia etc) when using custom --rpc-url")
         }
-        (None, Some(c)) => {
-            let chain = c.parse::<Chain>()?;
-            Ok((chain.rpc_url().to_string(), chain))
-        }
-        (None, None) => Ok((Chain::Localhost.rpc_url().to_string(), Chain::Localhost)),
+        (None, Some(chain)) => Ok((chain.rpc_url()?.to_string(), chain)),
+        (None, None) => Ok((
+            NamedChain::AnvilHardhat.rpc_url()?.to_string(),
+            NamedChain::AnvilHardhat,
+        )),
     }
 }
 
 /// Query chain ID from RPC endpoint and validate it matches expected chain
-pub async fn query_and_validate_chain_id(rpc_url: &str, chain: &Chain) -> Result<u64> {
+pub async fn query_and_validate_chain_id(rpc_url: &str, chain: &NamedChain) -> Result<u64> {
     let provider = ProviderBuilder::new().connect_http(rpc_url.parse().context("Invalid RPC URL")?);
 
     let chain_id = provider
@@ -103,13 +52,11 @@ pub async fn query_and_validate_chain_id(rpc_url: &str, chain: &Chain) -> Result
         .context(format!("Failed to query chain ID from RPC {}", rpc_url))?;
 
     // Validate chain ID matches expected value for named chains
-    if let Some(expected) = chain.expected_chain_id()
-        && expected != chain_id
-    {
+    if *chain as u64 != chain_id {
         bail!(
             "Chain ID mismatch: expected {} for {} but got {} from RPC {}",
-            expected,
-            chain.name(),
+            *chain as u64,
+            chain,
             chain_id,
             rpc_url
         );
