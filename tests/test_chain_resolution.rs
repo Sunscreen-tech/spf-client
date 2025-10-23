@@ -19,7 +19,7 @@ fn test_resolve_rpc_and_chain_web2_mode() {
 #[test]
 fn test_resolve_rpc_and_chain_web3_with_chain_only() {
     // Web3 mode: chain provided, no custom RPC
-    let result = resolve_rpc_and_chain(None, Some("anvil"));
+    let result = resolve_rpc_and_chain(None, Some(NamedChain::AnvilHardhat));
     assert!(result.is_ok());
 
     let (rpc_url, chain) = result.unwrap();
@@ -33,7 +33,7 @@ fn test_resolve_rpc_and_chain_web3_with_chain_only() {
 fn test_resolve_rpc_and_chain_web3_with_custom_rpc() {
     // Web3 mode: both chain and custom RPC provided
     let custom_rpc = "http://custom-rpc:8545";
-    let result = resolve_rpc_and_chain(Some(custom_rpc), Some("sepolia"));
+    let result = resolve_rpc_and_chain(Some(custom_rpc), Some(NamedChain::Sepolia));
     assert!(result.is_ok());
 
     let (rpc_url, chain) = result.unwrap();

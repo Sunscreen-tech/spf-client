@@ -1,3 +1,4 @@
+use alloy_chains::NamedChain;
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 use spf_client::{cli, client};
@@ -179,7 +180,7 @@ struct AclCommonParams {
 
     /// Chain (web3, optional)
     #[arg(long)]
-    chain: Option<String>,
+    chain: Option<NamedChain>,
 }
 
 /// Parameters specific to Run operations
@@ -255,7 +256,7 @@ enum GrantCommand {
 
         /// Chain (web3, optional)
         #[arg(long)]
-        chain: Option<String>,
+        chain: Option<NamedChain>,
 
         /// RPC URL (web3, optional)
         #[arg(long)]
@@ -304,7 +305,7 @@ enum CheckCommand {
 }
 
 /// Helper function to log chain and RPC URL debug information
-fn log_chain_info(chain: Option<&str>, rpc_url: Option<&str>) {
+fn log_chain_info(chain: Option<NamedChain>, rpc_url: Option<&str>) {
     if let Some(c) = chain {
         debug!("  Chain: {}", c);
     }
@@ -450,7 +451,7 @@ async fn main() -> Result<()> {
                         common.ciphertext_id
                     );
                     debug!("  Address: {}", common.address);
-                    log_chain_info(common.chain.as_deref(), rpc_url.as_deref());
+                    log_chain_info(common.chain, rpc_url.as_deref());
 
                     let signer = cli::parse_private_key(&private_key)?;
 
@@ -458,7 +459,7 @@ async fn main() -> Result<()> {
                         endpoint,
                         &common.ciphertext_id,
                         &common.address,
-                        common.chain.as_deref(),
+                        common.chain,
                         rpc_url.as_deref(),
                         &signer,
                     )
@@ -478,7 +479,7 @@ async fn main() -> Result<()> {
                         common.ciphertext_id
                     );
                     debug!("  Address: {}", common.address);
-                    log_chain_info(common.chain.as_deref(), rpc_url.as_deref());
+                    log_chain_info(common.chain, rpc_url.as_deref());
 
                     let signer = cli::parse_private_key(&private_key)?;
 
@@ -486,7 +487,7 @@ async fn main() -> Result<()> {
                         endpoint,
                         &common.ciphertext_id,
                         &common.address,
-                        common.chain.as_deref(),
+                        common.chain,
                         rpc_url.as_deref(),
                         &signer,
                     )
@@ -513,7 +514,7 @@ async fn main() -> Result<()> {
                     if let Some(ref ep) = entry_point {
                         debug!("  Entry Point: {}", ep);
                     }
-                    log_chain_info(chain.as_deref(), rpc_url.as_deref());
+                    log_chain_info(chain, rpc_url.as_deref());
 
                     let signer = cli::parse_private_key(&private_key)?;
 
@@ -523,7 +524,7 @@ async fn main() -> Result<()> {
                         &executor,
                         library.as_deref(),
                         entry_point.as_deref(),
-                        chain.as_deref(),
+                        chain,
                         rpc_url.as_deref(),
                         &signer,
                     )
@@ -541,7 +542,7 @@ async fn main() -> Result<()> {
                         common.ciphertext_id
                     );
                     debug!("  Address: {}", common.address);
-                    if let Some(ref c) = common.chain {
+                    if let Some(c) = common.chain {
                         debug!("  Chain: {}", c);
                     }
 
@@ -549,7 +550,7 @@ async fn main() -> Result<()> {
                         endpoint,
                         &common.ciphertext_id,
                         &common.address,
-                        common.chain.as_deref(),
+                        common.chain,
                     )
                     .await?;
 
@@ -562,7 +563,7 @@ async fn main() -> Result<()> {
                         common.ciphertext_id
                     );
                     debug!("  Address: {}", common.address);
-                    if let Some(ref c) = common.chain {
+                    if let Some(c) = common.chain {
                         debug!("  Chain: {}", c);
                     }
 
@@ -570,7 +571,7 @@ async fn main() -> Result<()> {
                         endpoint,
                         &common.ciphertext_id,
                         &common.address,
-                        common.chain.as_deref(),
+                        common.chain,
                     )
                     .await?;
 
@@ -589,7 +590,7 @@ async fn main() -> Result<()> {
                     debug!("  Address: {}", common.address);
                     debug!("  Library: {}", run_params.library);
                     debug!("  Entry Point: {}", run_params.entry_point);
-                    if let Some(ref c) = common.chain {
+                    if let Some(c) = common.chain {
                         debug!("  Chain: {}", c);
                     }
 
@@ -599,7 +600,7 @@ async fn main() -> Result<()> {
                         &common.address,
                         &run_params.library,
                         &run_params.entry_point,
-                        common.chain.as_deref(),
+                        common.chain,
                     )
                     .await?;
 

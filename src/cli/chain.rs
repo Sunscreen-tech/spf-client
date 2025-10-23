@@ -27,20 +27,14 @@ impl RpcUrl for NamedChain {
 /// If neither is provided: defaults to local anvil/hardhat node
 pub fn resolve_rpc_and_chain(
     rpc_url: Option<&str>,
-    chain: Option<&str>,
+    chain: Option<NamedChain>,
 ) -> Result<(String, NamedChain)> {
     match (rpc_url, chain) {
-        (Some(url), Some(c)) => {
-            let chain = c.parse::<NamedChain>()?;
-            Ok((url.to_string(), chain))
-        }
+        (Some(url), Some(chain)) => Ok((url.to_string(), chain)),
         (Some(_), None) => {
             bail!("Must specify --chain (monad-testnet/sepolia etc) when using custom --rpc-url")
         }
-        (None, Some(c)) => {
-            let chain = c.parse::<NamedChain>()?;
-            Ok((chain.rpc_url()?.to_string(), chain))
-        }
+        (None, Some(chain)) => Ok((chain.rpc_url()?.to_string(), chain)),
         (None, None) => Ok((
             NamedChain::AnvilHardhat.rpc_url()?.to_string(),
             NamedChain::AnvilHardhat,
