@@ -324,14 +324,12 @@ pub enum AclCheckResult {
 
 /// Helper to resolve chain ID from chain name (without RPC query)
 ///
-/// Returns the chain ID for named chains (monad, sepolia).
-/// For localhost, returns an error since the chain ID varies by local setup.
-/// Use grant operations (which query RPC) for localhost chains.
+/// Returns the chain ID for correctly named chains (monad-testnet, sepolia, etc)
 fn resolve_chain_id_from_name(chain: &str) -> Result<u64> {
     match chain.parse::<NamedChain>() {
         Ok(c) => Ok(c as u64),
-        Err(e) => bail!(
-            "{e}: please follow naming convention in NamedChain enum in https://docs.rs/alloy-chains/latest/src/alloy_chains/named.rs.html, for example, `monad-testnet` is the only acceptable form for Monad testnet"
+        Err(_) => bail!(
+            "Unrecognized chain (refer to NamedChain enum in https://docs.rs/alloy-chains/latest/src/alloy_chains/named.rs.html)"
         ),
     }
 }

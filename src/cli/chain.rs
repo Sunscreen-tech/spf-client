@@ -24,7 +24,7 @@ impl RpcUrl for NamedChain {
 /// If both rpc_url and chain are provided: uses custom RPC with specified chain
 /// If only chain is provided: uses chain's default RPC URL
 /// If only rpc_url is provided: errors (must specify which chain)
-/// If neither is provided: defaults to Localhost
+/// If neither is provided: defaults to local anvil/hardhat node
 pub fn resolve_rpc_and_chain(
     rpc_url: Option<&str>,
     chain: Option<&str>,
@@ -35,7 +35,7 @@ pub fn resolve_rpc_and_chain(
             Ok((url.to_string(), chain))
         }
         (Some(_), None) => {
-            bail!("Must specify --chain (monad/sepolia/localhost) when using custom --rpc-url")
+            bail!("Must specify --chain (monad-testnet/sepolia etc) when using custom --rpc-url")
         }
         (None, Some(c)) => {
             let chain = c.parse::<NamedChain>()?;
