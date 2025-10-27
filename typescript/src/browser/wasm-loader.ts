@@ -33,7 +33,7 @@ export async function initialize(endpoint: string = "https://spf.sunscreen.tech"
   const currentAuthSecret = getAuthSecret();
 
   // If already initialized with the same endpoint, skip
-  if (initialized && currentEndpoint === endpoint && authSecret == currentAuthSecret) {
+  if (initialized && currentEndpoint === endpoint && authSecret === currentAuthSecret) {
     return;
   }
 
