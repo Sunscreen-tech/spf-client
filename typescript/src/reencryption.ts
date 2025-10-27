@@ -2,6 +2,7 @@ import { keccak_256 } from "@noble/hashes/sha3";
 import type { AnySigner, CiphertextId, ReencryptHandle, PollingOptions } from "./spf-client.js";
 import { createIdentityHeader, asCiphertextId, asReencryptHandle, pollUntilComplete } from "./spf-client.js";
 import { getEndpoint } from "@sunscreen/spf-client/spf-wasm-loader";
+import { getAuthSecret } from "./internal/endpoint-state.js";
 
 /**
  * Reencryption status - pending, running, or in progress
@@ -66,7 +67,7 @@ export async function requestReencryption(
   // Create authentication header
   const identityHeader = await createIdentityHeader(
     signer,
-    publicOtp, 
+    publicOtp,
     {
       ReencryptionAuthentication: [
         { name: "entity", type: "address" },
@@ -85,6 +86,7 @@ export async function requestReencryption(
       method: "POST",
       headers: {
         "spf-identity": identityHeader,
+        "spf-auth": getAuthSecret()
       },
       body: publicOtp,
     },
@@ -129,7 +131,13 @@ export async function checkReencryptionStatus(
 ): Promise<ReencryptionStatus> {
   const endpoint = getEndpoint();
   const response = await fetch(
-    `${endpoint}/recryption/${reencryptHandle}`
+    `${endpoint}/recryption/${reencryptHandle}`,
+    {
+      method: "GET",
+      headers: {
+        "spf-auth": getAuthSecret()
+      }
+    }
   );
 
   if (!response.ok) {

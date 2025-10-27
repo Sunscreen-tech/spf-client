@@ -19,6 +19,7 @@ import {
   type DecryptionStatusRaw,
 } from "./parsers.js";
 import { validateParameterAuth } from "./validation.js";
+import { getAuthSecret } from "./internal/endpoint-state.js";
 
 /**
  * Union type supporting both lightweight SpfSigner and ethers.Signer
@@ -115,6 +116,11 @@ export type ProgramName = Brand<string, "ProgramName">;
  * Endpoints are valid HTTP or HTTPS URLs pointing to SPF service instances.
  */
 export type SpfEndpoint = Brand<string, "SpfEndpoint">;
+
+/**
+ * Branded type for the authenticate secret attached to each request with the `spf-auth` header.
+ */
+export type SpfAuthSecret = Brand<string, "AuthSecret">;
 
 /**
  * Branded type for SPF parameter metadata
@@ -469,6 +475,10 @@ export function asSpfEndpoint(value: string, validate: boolean = true): SpfEndpo
     throw new Error(`Invalid SPF endpoint: must be a valid HTTP/HTTPS URL, got: ${value}`);
   }
   return value as SpfEndpoint;
+}
+
+export function asSpfAuthSecret(value: string): SpfAuthSecret {
+  return value as SpfAuthSecret;
 }
 
 /**
@@ -887,8 +897,8 @@ function isPendingStatus<TStatus extends { readonly status: string }>(
   status: TStatus
 ): status is Extract<TStatus, { status: "pending" | "running" | "in_progress" }> {
   return status.status === "pending" ||
-         status.status === "running" ||
-         status.status === "in_progress";
+    status.status === "running" ||
+    status.status === "in_progress";
 }
 
 /**
@@ -1404,6 +1414,9 @@ export async function uploadProgram(
   const endpoint = getEndpoint();
   const response = await fetch(`${endpoint}/programs`, {
     method: "POST",
+    headers: {
+      "spf-auth": getAuthSecret()
+    },
     body: programBytes,
   });
 
@@ -1427,7 +1440,12 @@ export async function downloadProgram(
   libraryId: LibraryId,
 ): Promise<Uint8Array> {
   const endpoint = getEndpoint();
-  const response = await fetch(`${endpoint}/programs/${libraryId}`);
+  const response = await fetch(`${endpoint}/programs/${libraryId}`, {
+    method: "GET",
+    headers: {
+      "spf-auth": getAuthSecret()
+    }
+  });
 
   if (!response.ok) {
     const error = await response.text();
@@ -1494,7 +1512,7 @@ export async function submitRun(
       libraryId: libraryId,
       programName: programName,
       parameters: parameters_with_auth.map(([_, v]) => v),
-    }  
+    }
   );
 
   // Submit request
@@ -1502,6 +1520,7 @@ export async function submitRun(
     method: "POST",
     headers: {
       "spf-identity": identityHeader,
+      "spf-auth": getAuthSecret()
     },
     body: runBytes,
   });
@@ -1542,7 +1561,12 @@ export async function checkRunStatus(
   // Remove 0x prefix if present
   const handle = runHandle.startsWith("0x") ? runHandle.slice(2) : runHandle;
 
-  const response = await fetch(`${endpoint}/runs/${handle}`);
+  const response = await fetch(`${endpoint}/runs/${handle}`, {
+    method: "GET",
+    headers: {
+      "spf-auth": getAuthSecret()
+    }
+  });
 
   if (!response.ok) {
     const error = await response.text();
@@ -1637,6 +1661,7 @@ export async function uploadCiphertext(
     method: "POST",
     headers: {
       "spf-identity": identityHeader,
+      "spf-auth": getAuthSecret()
     },
     body: ciphertextBytes,
   });
@@ -1683,6 +1708,7 @@ export async function downloadCiphertext(
     method: "GET",
     headers: {
       "spf-identity": identityHeader,
+      "spf-auth": getAuthSecret()
     },
   });
 
@@ -1738,6 +1764,7 @@ export async function requestDecryption(
     method: "POST",
     headers: {
       "spf-identity": identityHeader,
+      "spf-auth": getAuthSecret()
     },
     body: requestBody,
   });
@@ -1779,7 +1806,12 @@ export async function checkDecryptionStatus(
   signed: boolean,
 ): Promise<DecryptionStatus> {
   const endpoint = getEndpoint();
-  const response = await fetch(`${endpoint}/decryption/${decryptHandle}`);
+  const response = await fetch(`${endpoint}/decryption/${decryptHandle}`, {
+    method: "GET",
+    headers: {
+      "spf-auth": getAuthSecret()
+    }
+  });
 
   if (!response.ok) {
     const error = await response.text();
@@ -1797,7 +1829,14 @@ async function checkDecryptionStatusRaw(
   decryptHandle: DecryptHandle,
 ): Promise<DecryptionStatusRaw> {
   const endpoint = getEndpoint();
-  const response = await fetch(`${endpoint}/decryption/${decryptHandle}`);
+  const response = await fetch(`${endpoint}/decryption/${decryptHandle}`,
+    {
+      method: "GET",
+      headers: {
+        "spf-auth": getAuthSecret()
+      }
+    }
+  );
 
   if (!response.ok) {
     const error = await response.text();
