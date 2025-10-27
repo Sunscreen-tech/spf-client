@@ -29,7 +29,7 @@ export async function runVotingExample(
   console.log("Voting example");
   console.log("=================================\n");
 
-  await initialize(endpoint);
+  await initialize(endpoint, "test");
   console.log("Initialized SPF client\n");
 
   const wallet1 = PrivateKeySigner.random();

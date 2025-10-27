@@ -401,7 +401,7 @@ async function handleEndpointToggle(): Promise<void> {
     endpointDisplay.textContent = getEndpointDisplayText(newEndpoint);
 
     addStatus('Reinitializing WASM module');
-    await initialize(currentEndpoint);
+    await initialize(currentEndpoint, atob("Z29vZGJvbmVzbmVlZGdvb2Rob21lcw=="));
     addStatus('WASM reinitialized with new endpoint', 'success');
 
     // Recreate workflow engine

@@ -5,7 +5,10 @@ import {
   setEndpoint,
   clearEndpoint,
   getCurrentEndpoint,
+  getAuthSecret,
+  setAuthSecret,
 } from "./internal/endpoint-state.js";
+import { asSpfAuthSecret } from "./spf-client.js";
 
 let wasmModule: typeof WasmTypes | null = null;
 let initialized = false;
@@ -27,11 +30,12 @@ export async function getWasmModule(): Promise<typeof WasmTypes> {
   }
 }
 
-export async function initialize(endpoint: string = "https://spf.sunscreen.tech"): Promise<void> {
+export async function initialize(endpoint: string = "https://spf.sunscreen.tech", authSecret: string): Promise<void> {
   const currentEndpoint = getCurrentEndpoint();
+  const currentAuthSecret = getAuthSecret();
 
   // If already initialized with the same endpoint, skip reinitialization
-  if (initialized && currentEndpoint === endpoint) {
+  if (initialized && currentEndpoint === endpoint && currentAuthSecret === authSecret) {
     return;
   }
 
@@ -50,6 +54,7 @@ export async function initialize(endpoint: string = "https://spf.sunscreen.tech"
     // Import asSpfEndpoint from spf-client
     const { asSpfEndpoint } = await import("./spf-client.js");
     setEndpoint(asSpfEndpoint(endpoint));
+    setAuthSecret(asSpfAuthSecret(authSecret));
 
     // Fetch public key using TypeScript (browser fetch or Node.js fetch)
     const publicKeyBytes = await getPublicKey();
