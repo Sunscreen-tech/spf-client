@@ -1,7 +1,7 @@
 import { keccak_256 } from "@noble/hashes/sha3";
 import type { AnySigner, CiphertextId, ReencryptHandle, PollingOptions } from "./spf-client.js";
 import { createIdentityHeader, asCiphertextId, asReencryptHandle, pollUntilComplete } from "./spf-client.js";
-import { getEndpoint } from "@sunscreen/spf-client/spf-wasm-loader";
+import { getEndpoint } from "./wasm-loader.js";
 import { getAuthSecret } from "./internal/endpoint-state.js";
 
 /**

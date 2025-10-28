@@ -1,0 +1,56 @@
+#!/usr/bin/env nix-shell
+#! nix-shell -i bash -p prefetch-npm-deps
+#
+# update-npm-hash - Update npmDepsHash in typescript/default.nix
+#
+# This script computes the npmDepsHash from typescript/package-lock.json
+# and updates typescript/default.nix with the new hash.
+#
+# Usage: ./scripts/update-npm-hash
+#
+# Run this script after updating npm dependencies (package-lock.json)
+# to ensure the Nix build uses the correct dependency hashes.
+#
+
+set -euo pipefail
+
+# Get the git repository root
+PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "Error: Not in a git repository"
+  exit 1
+}
+
+cd "$PROJECT_ROOT"
+
+# Check that package-lock.json exists
+if [ ! -f typescript/package-lock.json ]; then
+  echo "Error: typescript/package-lock.json not found"
+  exit 1
+fi
+
+# Check that default.nix exists
+if [ ! -f typescript/default.nix ]; then
+  echo "Error: typescript/default.nix not found"
+  exit 1
+fi
+
+# Compute the new npmDepsHash from package-lock.json
+echo "Computing npm dependencies hash from typescript/package-lock.json..."
+NEW_HASH=$(prefetch-npm-deps typescript/package-lock.json) || {
+  echo "Error: Failed to compute npm dependencies hash"
+  exit 1
+}
+
+# Validate hash is not empty
+if [ -z "$NEW_HASH" ]; then
+  echo "Error: Computed hash is empty"
+  exit 1
+fi
+
+# Update the default.nix file with the new hash (portable sed)
+echo "Updating typescript/default.nix..."
+cp typescript/default.nix typescript/default.nix.bak
+sed "s|npmDepsHash = \".*\";|npmDepsHash = \"$NEW_HASH\";|" typescript/default.nix.bak > typescript/default.nix
+rm -f typescript/default.nix.bak
+
+echo "Successfully updated npmDepsHash to: $NEW_HASH"

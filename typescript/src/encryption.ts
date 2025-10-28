@@ -1,4 +1,4 @@
-import { getWasmModule, isInitialized } from "@sunscreen/spf-client/spf-wasm-loader";
+import { getWasmModule, isInitialized } from "./wasm-loader.js";
 import type { BitWidth } from "./spf-client.js";
 
 /**

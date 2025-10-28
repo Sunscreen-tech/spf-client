@@ -1,4 +1,4 @@
-import { getWasmModule } from "@sunscreen/spf-client/spf-wasm-loader";
+import { getWasmModule } from "./wasm-loader.js";
 import type {
   BitWidth,
   RunStatus,

@@ -13,9 +13,11 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    sunscreen-llvm.url = "github:sunscreen-tech/sunscreen-llvm";
   };
 
-  outputs = { self, nixpkgs, flake-utils, crane, rust-overlay }:
+  outputs = { self, nixpkgs, flake-utils, crane, rust-overlay, sunscreen-llvm }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -34,6 +36,8 @@
         };
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+        sunscreen-llvm-pkg = sunscreen-llvm.packages.${system}.default;
 
         # Common arguments for all Rust builds
         commonArgs = {
@@ -73,10 +77,6 @@
           })
             version;
         };
-
-        # TypeScript npm dependencies hash (shared between package and checks)
-        typescriptNpmDepsHash =
-          "sha256-WCoH2ye8i0dCM+kE60nBvlsDAMSyDHWuO/T21L0Czyc=";
 
         # Build the Rust library + CLI (native target, no WASM)
         # On Linux, build with musl for fully static binaries (rustflags in .cargo/config.toml)
@@ -169,32 +169,9 @@
         };
 
         # TypeScript package with WASM bindings
-        spf-typescript = pkgs.buildNpmPackage {
-          pname = "spf-client-typescript";
-          inherit (individualCrateArgs) version;
-
-          src = ./typescript;
-
-          npmDepsHash = typescriptNpmDepsHash;
-
-          # Copy WASM bindings early so they're available for TypeScript compilation
-          postPatch = ''
-            # WASM bindings need to be at the root (same level as src/)
-            cp -r ${spf-wasm}/wasm-bindings .
-            ls -la wasm-bindings/
-          '';
-
-          buildPhase = ''
-            npm run build:ts
-          '';
-
-          installPhase = ''
-            mkdir -p $out
-            cp -r dist $out/
-            cp -r wasm-bindings $out/
-            cp package.json $out/
-            cp README.md $out/ || true
-          '';
+        spf-typescript = pkgs.callPackage ./typescript {
+          inherit spf-wasm;
+          inherit (pkgs) nix-gitignore;
         };
 
         # TypeScript package as tarball for distribution
@@ -275,9 +252,6 @@
             ${pkgs.nodejs}/bin/npm test
           '';
 
-        # Sunscreen LLVM (only for dev shell)
-        sunscreen-llvm = pkgs.callPackage ./sunscreen-llvm.nix { };
-
         # Publish TypeScript package to npm
         publish-typescript = pkgs.writeShellScriptBin "publish-typescript" ''
           echo "Building TypeScript tarball with Nix..."
@@ -342,28 +316,19 @@
           cargo-fmt-check = craneLib.cargoFmt { inherit (commonArgs) src; };
 
           # TypeScript type checking (no test running, no network)
-          typescript-typecheck = pkgs.buildNpmPackage {
+          typescript-typecheck = (pkgs.callPackage ./typescript {
+            inherit spf-wasm;
+            inherit (pkgs) nix-gitignore;
+          }).overrideAttrs (old: {
             pname = "spf-typescript-typecheck";
-            inherit (individualCrateArgs) version;
-
-            src = ./typescript;
-
-            npmDepsHash = typescriptNpmDepsHash;
-
-            postPatch = ''
-              cp -r ${spf-wasm}/wasm-bindings .
-            '';
-
             buildPhase = ''
               npm run typecheck
             '';
-
             installPhase = ''
               touch $out
             '';
-
             dontNpmBuild = true;
-          };
+          });
 
           # Verify packages build
           packages-build = pkgs.runCommand "packages-build" { } ''
@@ -381,7 +346,7 @@
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             # Sunscreen LLVM (for FHE program development)
-            sunscreen-llvm
+            sunscreen-llvm-pkg
 
             # WASM tools
             wasm-pack
@@ -418,6 +383,7 @@
             echo "  cd typescript && npm run build           - Build TypeScript package"
             echo "  nix build                                - Build CLI via Nix"
             echo "  nix build .#spf-typescript               - Build TypeScript package via Nix"
+            echo "  update-npm-hash                          - Update TypeScript npm dependencies hash in nix"
             echo "  nix flake check                          - Run all checks"
             echo "  publish-typescript                       - Build and publish to npm"
             echo "  clean                                    - Clean all build artifacts"
