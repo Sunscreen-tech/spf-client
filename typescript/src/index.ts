@@ -18,4 +18,4 @@ export {
   preloadWasm,
   clearWasmCache,
   isInitialized,
-} from '@sunscreen/spf-client/spf-wasm-loader';
+} from './wasm-loader.js';

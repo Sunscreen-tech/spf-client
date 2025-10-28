@@ -68,7 +68,7 @@ import {
   encodeSpfAccessAbi,
 } from "./crypto/index.js";
 import { parseStringResponse } from "./parsers.js";
-import { getEndpoint } from "@sunscreen/spf-client/spf-wasm-loader";
+import { getEndpoint } from "./wasm-loader.js";
 import { validateAccessChangeAuth } from "./validation.js";
 import { getAuthSecret } from "./internal/endpoint-state.js";
 

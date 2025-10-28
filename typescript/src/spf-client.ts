@@ -1,5 +1,5 @@
 import type { Signer as EthersSigner, TypedDataField } from "ethers";
-import { getWasmModule, getEndpoint } from "@sunscreen/spf-client/spf-wasm-loader";
+import { getWasmModule, getEndpoint } from "./wasm-loader.js";
 import { keccak_256 } from "@noble/hashes/sha3";
 import {
   bytesToHex,
@@ -1995,7 +1995,7 @@ export {
 } from "./reencryption.js";
 
 // Re-export WASM utilities
-export { getWasmModule, preloadWasm, clearWasmCache, initialize, isInitialized } from "@sunscreen/spf-client/spf-wasm-loader";
+export { getWasmModule, preloadWasm, clearWasmCache, initialize, isInitialized } from "./wasm-loader.js";
 
 // Re-export ACL check functions
 export {

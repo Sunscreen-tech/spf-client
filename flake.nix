@@ -13,9 +13,11 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    sunscreen-llvm.url = "github:sunscreen-tech/sunscreen-llvm";
   };
 
-  outputs = { self, nixpkgs, flake-utils, crane, rust-overlay }:
+  outputs = { self, nixpkgs, flake-utils, crane, rust-overlay, sunscreen-llvm }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -34,6 +36,8 @@
         };
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+        sunscreen-llvm-pkg = sunscreen-llvm.packages.${system}.default;
 
         # Common arguments for all Rust builds
         commonArgs = {
@@ -76,7 +80,8 @@
 
         # TypeScript npm dependencies hash (shared between package and checks)
         typescriptNpmDepsHash =
-          "sha256-WCoH2ye8i0dCM+kE60nBvlsDAMSyDHWuO/T21L0Czyc=";
+          "sha256-447uu5IYXhcPZ5XQPwkEVRmPxRS53IXi9TM4SiLR92s=";
+          # pkgs.lib.fakeHash;
 
         # Build the Rust library + CLI (native target, no WASM)
         # On Linux, build with musl for fully static binaries (rustflags in .cargo/config.toml)
@@ -275,9 +280,6 @@
             ${pkgs.nodejs}/bin/npm test
           '';
 
-        # Sunscreen LLVM (only for dev shell)
-        sunscreen-llvm = pkgs.callPackage ./sunscreen-llvm.nix { };
-
         # Publish TypeScript package to npm
         publish-typescript = pkgs.writeShellScriptBin "publish-typescript" ''
           echo "Building TypeScript tarball with Nix..."
@@ -381,7 +383,7 @@
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             # Sunscreen LLVM (for FHE program development)
-            sunscreen-llvm
+            sunscreen-llvm-pkg
 
             # WASM tools
             wasm-pack

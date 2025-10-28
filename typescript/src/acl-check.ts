@@ -1,7 +1,7 @@
 import {
   getWasmModule,
   getEndpoint,
-} from "@sunscreen/spf-client/spf-wasm-loader";
+} from "./wasm-loader.js";
 import {
   type CiphertextId,
   type Signature,
