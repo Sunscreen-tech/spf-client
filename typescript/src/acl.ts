@@ -70,6 +70,7 @@ import {
 import { parseStringResponse } from "./parsers.js";
 import { getEndpoint } from "@sunscreen/spf-client/spf-wasm-loader";
 import { validateAccessChangeAuth } from "./validation.js";
+import { getAuthSecret } from "./internal/endpoint-state.js";
 
 /**
  * Base interface for ACL authentication data
@@ -391,6 +392,7 @@ export async function updateAccess(
   changes_with_auth: readonly SpfAccessChangeWithAuth[]
 ): Promise<CiphertextId> {
   const endpoint = getEndpoint();
+
   // Encode the SpfAccess
   const encodedAccess = encodeSpfAccess(
     ciphertextId,
@@ -427,6 +429,7 @@ export async function updateAccess(
     method: "POST",
     headers: {
       "spf-identity": identityHeader,
+      "spf-auth": getAuthSecret()
     },
     body: accessBytes,
   });

@@ -9,6 +9,7 @@ import {
   type ProgramName,
   asSignature,
 } from "./spf-client.js";
+import { getAuthSecret } from "./internal/endpoint-state.js";
 
 /**
  * Access control type for ACL checks
@@ -330,6 +331,7 @@ async function makeAclCheckRequest(
     method: "POST",
     headers: {
       "Content-Type": "application/octet-stream",
+      "spf-auth": getAuthSecret()
     },
     body: accessBytes,
   });

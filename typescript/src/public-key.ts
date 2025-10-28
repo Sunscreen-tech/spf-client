@@ -1,4 +1,5 @@
 import { getEndpoint } from "@sunscreen/spf-client/spf-wasm-loader";
+import { getAuthSecret } from "./internal/endpoint-state";
 
 // In-memory cache for the SPF public key
 let cachedPublicKey: Uint8Array | null = null;
@@ -28,7 +29,12 @@ export async function getPublicKey(): Promise<Uint8Array> {
   }
 
   try {
-    const response = await fetch(`${endpoint}/public_keys`);
+    const response = await fetch(`${endpoint}/public_keys`, {
+      method: "GET",
+      headers: {
+        "spf-auth": getAuthSecret()
+      }
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

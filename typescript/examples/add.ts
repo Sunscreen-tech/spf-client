@@ -32,7 +32,7 @@ export async function runAddExample(
   console.log("Encrypted addition example");
   console.log("=================================\n");
 
-  await initialize(endpoint);
+  await initialize(endpoint, "test");
   console.log("Initialized SPF client\n");
 
   // Create two wallets: uploader and runner

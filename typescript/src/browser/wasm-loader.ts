@@ -14,7 +14,10 @@ import {
   setEndpoint,
   clearEndpoint,
   getCurrentEndpoint,
+  getAuthSecret,
+  setAuthSecret,
 } from '../internal/endpoint-state.js';
+import { asSpfAuthSecret } from '../spf-client.js';
 
 let initialized = false;
 let cachedPublicKeyBytes: Uint8Array | null = null;
@@ -25,11 +28,12 @@ let cachedPublicKeyBytes: Uint8Array | null = null;
  * Note: With bundler target, WASM is already loaded by the bundler.
  * This function only handles the SPF-specific initialization (public key).
  */
-export async function initialize(endpoint: string = "https://spf.sunscreen.tech"): Promise<void> {
+export async function initialize(endpoint: string = "https://spf.sunscreen.tech", authSecret: string): Promise<void> {
   const currentEndpoint = getCurrentEndpoint();
+  const currentAuthSecret = getAuthSecret();
 
   // If already initialized with the same endpoint, skip
-  if (initialized && currentEndpoint === endpoint) {
+  if (initialized && currentEndpoint === endpoint && authSecret === currentAuthSecret) {
     return;
   }
 
@@ -46,6 +50,7 @@ export async function initialize(endpoint: string = "https://spf.sunscreen.tech"
     // Import asSpfEndpoint from spf-client
     const { asSpfEndpoint } = await import("../spf-client.js");
     setEndpoint(asSpfEndpoint(endpoint));
+    setAuthSecret(asSpfAuthSecret(authSecret));
 
     // Fetch public key
     const publicKeyBytes = await getPublicKey();
