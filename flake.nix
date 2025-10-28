@@ -76,7 +76,7 @@
 
         # TypeScript npm dependencies hash (shared between package and checks)
         typescriptNpmDepsHash =
-          "sha256-Up7cIUTTLGFFJrmfFYxKgWdjT6ZEZit9hPXCUXzHYWo=";
+          "sha256-WCoH2ye8i0dCM+kE60nBvlsDAMSyDHWuO/T21L0Czyc=";
 
         # Build the Rust library + CLI (native target, no WASM)
         # On Linux, build with musl for fully static binaries (rustflags in .cargo/config.toml)
