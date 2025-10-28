@@ -492,7 +492,7 @@ async function init(): Promise<void> {
 
     // Try to initialize with detected endpoint, fallback to production if it fails
     try {
-      await initialize(currentEndpoint);
+      await initialize(currentEndpoint, atob("Z29vZGJvbmVzbmVlZGdvb2Rob21lcw=="));
       console.log('[DEBUG] WASM initialized with', currentEndpoint);
       addStatus(`Connected to ${getEndpointDisplayText(currentEndpoint)}`, 'success');
     } catch (error) {
@@ -509,7 +509,7 @@ async function init(): Promise<void> {
         endpointToggle.checked = true;
 
         addStatus(`Connecting to ${getEndpointDisplayText(currentEndpoint)}...`);
-        await initialize(currentEndpoint);
+        await initialize(currentEndpoint, atob("Z29vZGJvbmVzbmVlZGdvb2Rob21lcw=="));
         console.log('[DEBUG] WASM initialized with production');
         addStatus(`Connected to ${getEndpointDisplayText(currentEndpoint)}`, 'success');
       } else {
