@@ -14,7 +14,7 @@ pub async fn upload_ciphertext(
         super::auth::create_ciphertext_upload_auth_header(signer, &ciphertext_bytes).await?;
 
     let url = format!("{}/ciphertexts", endpoint);
-    let client = super::http::create_http_client(60)?;
+    let client = super::http::create_http_client(60, endpoint)?;
 
     let response = client
         .post(&url)
@@ -36,7 +36,7 @@ pub async fn upload_program(endpoint: &str, program_bytes: Vec<u8>) -> Result<St
     let program_id = utils::derive_program_id(&program_bytes);
 
     let url = format!("{}/programs", endpoint);
-    let client = super::http::create_http_client(60)?;
+    let client = super::http::create_http_client(60, endpoint)?;
 
     let response = client.post(&url).body(program_bytes).send().await?;
 

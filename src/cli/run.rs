@@ -267,7 +267,7 @@ pub async fn submit_run(
 
     // Submit request
     let url = format!("{}/runs", endpoint);
-    let client = create_http_client(60)?;
+    let client = create_http_client(60, endpoint)?;
 
     let response = client
         .post(&url)
@@ -299,7 +299,7 @@ pub async fn check_run_status(endpoint: &str, run_handle: &str) -> Result<RunSta
     let handle = run_handle.strip_prefix("0x").unwrap_or(run_handle);
 
     let url = format!("{}/runs/{}", endpoint, handle);
-    let client = create_http_client(30)?;
+    let client = create_http_client(30, endpoint)?;
 
     let response = client.get(&url).send().await?;
 

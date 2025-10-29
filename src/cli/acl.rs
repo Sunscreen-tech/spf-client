@@ -259,7 +259,7 @@ pub async fn update_access_typed(
     let auth_header = super::auth::create_access_change_auth_header(signer, &access_bytes).await?;
 
     let url = format!("{}/acl", endpoint);
-    let client = super::http::create_http_client(30)?;
+    let client = super::http::create_http_client(30, endpoint)?;
 
     let response = client
         .post(&url)
@@ -426,7 +426,7 @@ async fn check_access(
 
     // Make POST request to /acl_check/{ciphertext_id}
     let url = format!("{}/acl_check/{}", endpoint, ciphertext_id);
-    let client = super::http::create_http_client(30)?;
+    let client = super::http::create_http_client(30, endpoint)?;
 
     let response = client
         .post(&url)

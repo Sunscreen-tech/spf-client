@@ -1,10 +1,23 @@
 use anyhow::Result;
+use reqwest::IntoUrl;
 use std::time::Duration;
 
+fn is_ssl_localhost<U: IntoUrl>(endpoint: U) -> bool {
+    if let Ok(u) = endpoint.into_url()
+        && u.scheme() == "https"
+        && [Some("localhost"), Some("127.0.0.1"), Some("[::1]")].contains(&u.host_str())
+    {
+        true
+    } else {
+        false
+    }
+}
+
 /// Create an HTTP client with specified timeout
-pub fn create_http_client(timeout_secs: u64) -> Result<reqwest::Client> {
+pub fn create_http_client(timeout_secs: u64, endpoint: &str) -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(timeout_secs))
+        .danger_accept_invalid_certs(is_ssl_localhost(endpoint))
         .build()
         .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))
 }
@@ -29,7 +42,7 @@ pub async fn check_response_status(
 pub async fn fetch_public_key(endpoint: &str) -> Result<Vec<u8>> {
     let url = format!("{}/public_keys", endpoint);
 
-    let client = create_http_client(30)?;
+    let client = create_http_client(30, endpoint)?;
 
     let response = client
         .get(&url)
