@@ -13,7 +13,7 @@ pub async fn request_decryption(
     let request_body = ciphertext_id_clean.as_bytes().to_vec();
 
     let auth_header = super::auth::create_decryption_auth_header(signer, ciphertext_id).await?;
-    let client = super::http::create_http_client(30)?;
+    let client = super::http::create_http_client(30, endpoint)?;
 
     let url = format!("{}/decryption", endpoint);
     let response = client
@@ -38,7 +38,7 @@ pub async fn poll_decryption_result(
     signed: bool,
     poll_interval: u64,
 ) -> Result<i64> {
-    let client = super::http::create_http_client(30)?;
+    let client = super::http::create_http_client(30, endpoint)?;
 
     loop {
         tokio::time::sleep(tokio::time::Duration::from_millis(poll_interval)).await;

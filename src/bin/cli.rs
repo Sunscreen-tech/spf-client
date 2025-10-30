@@ -627,7 +627,7 @@ async fn main() -> Result<()> {
             let signed = matches!(sign, Signedness::Signed);
 
             // Check status once (no polling)
-            let client = cli::create_http_client(30)?;
+            let client = cli::create_http_client(30, endpoint)?;
             let status_url = format!("{}/decryption/{}", endpoint, decrypt_handle);
             let status_response = client.get(&status_url).send().await?;
 
