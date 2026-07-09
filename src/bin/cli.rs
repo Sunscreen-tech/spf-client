@@ -113,6 +113,21 @@ enum Commands {
         private_key: Option<String>,
     },
 
+    /// Encrypt a single binary value (0 or 1) using BFV with a Greco ZK proof and upload it
+    EncryptBfv {
+        /// Binary value to encrypt (must be 0 or 1)
+        #[arg(long)]
+        value: u64,
+
+        /// TFHE bit width label stored server-side (8, 16, 32, or 64)
+        #[arg(long)]
+        bit_width: u32,
+
+        /// Wallet private key
+        #[arg(long)]
+        private_key: String,
+    },
+
     /// Generate a new wallet for testing (hidden command)
     #[command(hide = true)]
     NewWallet,
@@ -755,6 +770,46 @@ async fn main() -> Result<()> {
                 // Core output - always to stdout for scriptability
                 println!("{}", ciphertext_id);
             }
+        }
+
+        Commands::EncryptBfv {
+            value,
+            bit_width,
+            private_key,
+        } => {
+            if ![8u32, 16, 32, 64].contains(&bit_width) {
+                anyhow::bail!("Invalid bit width: {}. Must be 8, 16, 32, or 64", bit_width);
+            }
+
+            let signer = cli::parse_private_key(&private_key)?;
+
+            // Fetch BFV public key from server.
+            info!("Fetching BFV public key from SPF endpoint");
+            let (pk0_coeffs, pk1_coeffs) = cli::fetch_bfv_public_key(endpoint).await?;
+            debug!("BFV public key: pk0={} coeffs, pk1={} coeffs", pk0_coeffs.len(), pk1_coeffs.len());
+
+            // ZkpState::setup() is CPU-intensive — run on blocking thread pool.
+            info!("Setting up ZKP state (this may take a minute)...");
+            let zkp = tokio::task::spawn_blocking(|| {
+                greco_tfhe::ZkpState::setup()
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("ZkpState setup panicked: {e}"))?;
+
+            info!("Encrypting value={} and generating proof...", value);
+            let ciphertext_id = cli::encrypt_and_upload_bfv(
+                endpoint,
+                value,
+                bit_width,
+                pk0_coeffs,
+                pk1_coeffs,
+                &zkp,
+                &signer,
+            )
+            .await?;
+
+            info!("BFV ciphertext uploaded successfully");
+            println!("{}", ciphertext_id);
         }
 
         Commands::NewWallet => {
