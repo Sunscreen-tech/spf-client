@@ -1,8 +1,9 @@
 use alloy::signers::local::PrivateKeySigner;
 use anyhow::Result;
 use greco_tfhe::{
+    ZkpState,
     client::{greco_glwe_def, rlwe_pk_encrypt},
-    gen_proof, ZkpState,
+    gen_proof,
     params::RlweParams,
     rlwe_public_key_from_coeffs,
 };
@@ -75,11 +76,7 @@ pub async fn encrypt_and_upload_bfv(
         .iter()
         .map(|t| u64::from(t.inner()))
         .collect();
-    let ct0_coeffs: Vec<u64> = b
-        .coeffs()
-        .iter()
-        .map(|t| u64::from(t.inner()))
-        .collect();
+    let ct0_coeffs: Vec<u64> = b.coeffs().iter().map(|t| u64::from(t.inner())).collect();
 
     let submission = BfvCiphertextSubmission {
         bit_width,
@@ -90,8 +87,7 @@ pub async fn encrypt_and_upload_bfv(
 
     let body = bincode::serialize(&submission)?;
 
-    let auth_header =
-        super::auth::create_ciphertext_upload_auth_header(signer, &body).await?;
+    let auth_header = super::auth::create_ciphertext_upload_auth_header(signer, &body).await?;
     let url = format!("{}/ciphertexts/bfv", endpoint);
     // Use a generous timeout: ZKP proof verification on the server is slow.
     let client = super::http::create_http_client(300, endpoint)?;
@@ -101,8 +97,7 @@ pub async fn encrypt_and_upload_bfv(
         .body(body)
         .send()
         .await?;
-    let response =
-        super::http::check_response_status(response, "BFV ciphertext upload").await?;
+    let response = super::http::check_response_status(response, "BFV ciphertext upload").await?;
     let ciphertext_id: String = response.json().await?;
     Ok(crate::core::utils::ensure_hex_prefix(ciphertext_id))
 }

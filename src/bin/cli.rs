@@ -786,25 +786,21 @@ async fn main() -> Result<()> {
             // Fetch BFV public key from server.
             info!("Fetching BFV public key from SPF endpoint");
             let (pk0_coeffs, pk1_coeffs) = cli::fetch_bfv_public_key(endpoint).await?;
-            debug!("BFV public key: pk0={} coeffs, pk1={} coeffs", pk0_coeffs.len(), pk1_coeffs.len());
+            debug!(
+                "BFV public key: pk0={} coeffs, pk1={} coeffs",
+                pk0_coeffs.len(),
+                pk1_coeffs.len()
+            );
 
             // ZkpState::setup() is CPU-intensive — run on blocking thread pool.
             info!("Setting up ZKP state (this may take a minute)...");
-            let zkp = tokio::task::spawn_blocking(|| {
-                greco_tfhe::ZkpState::setup()
-            })
-            .await
-            .map_err(|e| anyhow::anyhow!("ZkpState setup panicked: {e}"))?;
+            let zkp = tokio::task::spawn_blocking(greco_tfhe::ZkpState::setup)
+                .await
+                .map_err(|e| anyhow::anyhow!("ZkpState setup panicked: {e}"))?;
 
             info!("Encrypting value={} and generating proof...", value);
             let ciphertext_id = cli::encrypt_and_upload_bfv(
-                endpoint,
-                value,
-                bit_width,
-                pk0_coeffs,
-                pk1_coeffs,
-                &zkp,
-                &signer,
+                endpoint, value, bit_width, pk0_coeffs, pk1_coeffs, &zkp, &signer,
             )
             .await?;
 

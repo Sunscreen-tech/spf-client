@@ -26,14 +26,10 @@
           config.allowUnfree = true;
         };
 
-        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [ "rust-src" ];
-          targets = [
-            "wasm32-unknown-unknown"
-            "x86_64-unknown-linux-musl"
-            "aarch64-unknown-linux-musl"
-          ];
-        };
+        # Toolchain comes from rust-toolchain.toml so nix builds, CI, and local
+        # rustup all use the exact same pinned nightly (the greco/halo2 stack
+        # is developed against it). Components and targets are declared there.
+        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
