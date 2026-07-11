@@ -25,6 +25,9 @@ pub mod contract;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod run;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod bfv;
+
 // Re-export commonly used functions for convenience
 #[cfg(not(target_arch = "wasm32"))]
 pub use auth::{get_timestamp_millis, parse_private_key};
@@ -47,3 +50,6 @@ pub use acl::{
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use run::{RunParameterSpec, RunStatus, check_run_status, poll_run_result, submit_run};
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use bfv::{encrypt_and_upload_bfv, fetch_bfv_public_key};

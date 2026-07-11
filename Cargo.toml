@@ -36,6 +36,7 @@ serde-wasm-bindgen = "0.6"
 alloy = "1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+greco-tfhe = { git = "https://github.com/Sunscreen-tech/greco-tfhe.git" }
 anyhow = "1"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 clap = { version = "4", features = ["derive"] }

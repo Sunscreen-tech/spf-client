@@ -70,7 +70,7 @@ pub(super) async fn sign_raw_ecdsa_and_create_header(
         .map_err(|e| anyhow::anyhow!("k256 signing failed: {}", e))?;
 
     // Encode signature: 64 bytes (r, s) + 1 byte (recovery ID 0-3)
-    let sig_bytes = [sig.to_bytes().as_slice(), &[recid.to_byte()]].concat();
+    let sig_bytes = [&sig.to_bytes()[..], &[recid.to_byte()]].concat();
 
     // Create identity header with raw_ecdsa signature type
     let sig_str = hex::encode(sig_bytes);
